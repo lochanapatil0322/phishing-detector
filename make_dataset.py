@@ -12,7 +12,17 @@ phish["label"] = 1                                 # 1 = phishing
 safe = pd.read_csv("data/top-1m.csv", header=None, names=["rank", "domain"])
 safe = safe.head(50000)                            # take from the top 50,000 sites
 safe = safe.sample(n=n, random_state=42)           # same number as phishing
-safe["url"] = "https://" + safe["domain"]          # turn "google.com" into "https://google.com"
+import random
+rng = random.Random(42)
+subs = ["www", "mail", "login", "accounts", "support", "blog", "shop", "app", "docs", "help"]
+
+def add_subdomain(domain):
+    # 40% of safe links get a common subdomain, like real websites do
+    if rng.random() < 0.4:
+        return "https://" + rng.choice(subs) + "." + domain
+    return "https://" + domain
+
+safe["url"] = safe["domain"].apply(add_subdomain)
 safe["label"] = 0                                  # 0 = safe
 
 # 3. Join and shuffle
