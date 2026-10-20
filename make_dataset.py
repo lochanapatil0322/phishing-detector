@@ -10,7 +10,7 @@ phish["label"] = 1                                 # 1 = phishing
 
 # 2. Load the safe links
 safe = pd.read_csv("data/top-1m.csv", header=None, names=["rank", "domain"])
-safe = safe.head(50000)                            # take from the top 50,000 sites
+
 safe = safe.sample(n=n, random_state=42)           # same number as phishing
 import random
 rng = random.Random(42)
