@@ -44,6 +44,7 @@ export const api = {
   login: (body) => request("/auth/login", { method: "POST", body }),
   me: () => request("/auth/me"),
   analyzeUrl: (url) => request("/analyze/url", { method: "POST", body: { url } }),
+  analyzeEmail: (raw) => request("/analyze/email", { method: "POST", body: { raw } }),
   scans: () => request("/scans"),
   stats: () => request("/stats"),
 };

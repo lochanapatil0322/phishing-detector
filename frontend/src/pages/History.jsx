@@ -43,6 +43,7 @@ export default function History() {
             <summary>
               <Badge verdict={scan.verdict} />
               <span className="scan-score">{scan.score}/100</span>
+              <span>{scan.type === "email" ? "✉️" : "🔗"}</span>
               <span className="scan-url">{scan.url}</span>
               <span className="scan-time muted">
                 {new Date(scan.created_at).toLocaleString()}

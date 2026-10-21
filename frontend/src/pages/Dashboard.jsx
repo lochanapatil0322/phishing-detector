@@ -91,6 +91,7 @@ export default function Dashboard() {
         {recent.map((s) => (
           <div key={s.id} className="recent-row">
             <Badge verdict={s.verdict} />
+            <span>{s.type === "email" ? "✉️" : "🔗"}</span>
             <span className="scan-url">{s.url}</span>
             <span className="scan-score">{s.score}</span>
           </div>

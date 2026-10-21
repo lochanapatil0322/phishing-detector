@@ -135,3 +135,27 @@ input:focus { outline: 2px solid #2f5bea55; border-color: #2f5bea; }
   .nav-name { display: none; }
   .navbar { flex-wrap: wrap; gap: 8px; }
 }
+/* ---------- Scan tabs and email form ---------- */
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab {
+  padding: 8px 16px; border: 1px solid #cfd5e2; background: #fff;
+  border-radius: 8px; cursor: pointer; font-weight: 600; color: #667085;
+}
+.tab.active { background: #2f5bea; color: #fff; border-color: #2f5bea; }
+
+textarea {
+  width: 100%; min-height: 220px; padding: 11px 12px; resize: vertical;
+  font-family: monospace; font-size: 0.9rem;
+  border: 1px solid #cfd5e2; border-radius: 8px;
+}
+textarea:focus { outline: 2px solid #2f5bea55; border-color: #2f5bea; }
+
+input[type="file"] { width: auto; border: none; padding: 0; }
+.file-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+
+.auth-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.auth { padding: 4px 12px; border-radius: 99px; font-size: 0.85rem; font-weight: 700; }
+.auth-green { background: #dff5e6; color: #1b7a42; }
+.auth-amber { background: #fdf0c8; color: #8a6500; }
+.auth-red   { background: #fbdcdc; color: #a61f26; }
+.auth-gray  { background: #eceff4; color: #667085; }

@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from analyze import analyze
+from email_analyze import analyze_email
 from database import engine, Base, get_db
 from auth import (hash_password, verify_password, DUMMY_HASH,
                   create_access_token, get_current_user)
@@ -36,6 +37,8 @@ class LoginRequest(BaseModel):
 
 class UrlRequest(BaseModel):
     url: str
+class EmailRequest(BaseModel):
+    raw: str = Field(min_length=1, max_length=500000)
 
 
 # ---------- Helpers ----------
@@ -46,6 +49,7 @@ def user_to_dict(user):
 def scan_to_dict(scan):
     return {
         "id": scan.id,
+        "type": scan.input_type,
         "url": scan.input_text,
         "verdict": scan.verdict,
         "score": scan.score,
@@ -129,6 +133,41 @@ def analyze_url(
     db.refresh(scan)
     return scan_to_dict(scan)
 
+@app.post("/analyze/email")
+def analyze_email_route(
+    req: EmailRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    try:
+        result = analyze_email(req.raw)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read this email. Paste the full email text or upload a .eml file.",
+        )
+
+    # We store only the subject and sender, never the whole email
+    label = f"{result['subject'] or '(no subject)'} (from {result['sender']})"[:300]
+
+    scan = models.Scan(
+        user_id=user.id,
+        input_type="email",
+        input_text=label,
+        verdict=result["verdict"],
+        score=result["score"],
+    )
+    scan.reasons = [models.ScanReason(reason_text=r) for r in result["reasons"]]
+    db.add(scan)
+    db.commit()
+    db.refresh(scan)
+
+    saved = scan_to_dict(scan)
+    saved["subject"] = result["subject"]
+    saved["sender"] = result["sender"]
+    saved["auth"] = result["auth"]
+    saved["links"] = result["links"]
+    return saved
 
 @app.get("/scans")
 def list_scans(
