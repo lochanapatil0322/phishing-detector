@@ -3,3 +3,4 @@ data/online-valid.csv
 data/top-1m.csv
 __pycache__/
 phishing.db
+.env

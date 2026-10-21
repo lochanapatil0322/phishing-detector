@@ -4,18 +4,34 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 
+def _now():
+    return datetime.now(timezone.utc)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+    scans: Mapped[list["Scan"]] = relationship(back_populates="user")
+
+
 class Scan(Base):
     __tablename__ = "scans"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     input_type: Mapped[str] = mapped_column(String(10), default="url")
     input_text: Mapped[str] = mapped_column(Text)
     verdict: Mapped[str] = mapped_column(String(20))
     score: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
+    user: Mapped["User"] = relationship(back_populates="scans")
     reasons: Mapped[list["ScanReason"]] = relationship(
         back_populates="scan", cascade="all, delete-orphan"
     )
