@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
 export default function Navbar() {
@@ -13,10 +13,19 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <Link to="/" className="brand">🛡️ PhishGuard</Link>
+
+      {user && (
+        <div className="nav-links">
+          <NavLink to="/" end>Scan</NavLink>
+          <NavLink to="/history">History</NavLink>
+          <NavLink to="/dashboard">Dashboard</NavLink>
+        </div>
+      )}
+
       <div className="nav-right">
         {user ? (
           <>
-            <span className="muted">Hi, {user.name}</span>
+            <span className="muted nav-name">Hi, {user.name}</span>
             <button className="btn-small" onClick={handleLogout}>Log out</button>
           </>
         ) : (
