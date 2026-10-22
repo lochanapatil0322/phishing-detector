@@ -41,6 +41,20 @@ export default function ResultCard({ result }) {
           <li key={i}>{reason}</li>
         ))}
       </ul>
+
+      {result.signals && result.signals.length > 0 && (
+        <>
+          <h3>Detection layers</h3>
+          <div className="signals">
+            {result.signals.map((s, i) => (
+              <div key={i} className={`signal signal-${s.level}`}>
+                <span className="signal-name">{s.name}</span>
+                <span className="signal-status">{s.status}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
@@ -5,6 +7,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from analyze import analyze
+from threat_feed import lookup_exact, lookup_host, feed_stats
+from domain_age import get_domain_age, age_level
+from ratelimit import check_rate
+from url_features import get_hostname
 from mailer import send_email
 from otp import create_reset_code, reset_password_with_code
 from email_analyze import analyze_email
@@ -149,6 +155,8 @@ def analyze_url(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
+    check_rate(f"scan:{user.id}", 30, 60)      # at most 30 scans per minute per user
+
     url = req.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="Please enter a URL")
@@ -171,7 +179,10 @@ def analyze_url(
     db.add(scan)
     db.commit()
     db.refresh(scan)
-    return scan_to_dict(scan)
+
+    saved = scan_to_dict(scan)
+    saved["signals"] = result.get("signals", [])
+    return saved
 
 @app.post("/analyze/email")
 def analyze_email_route(
@@ -244,3 +255,110 @@ def get_stats(
         "suspicious": counts.get("Suspicious", 0),
         "phishing": counts.get("Phishing", 0),
     }
+# ---------- Model info, account settings ----------
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(max_length=64)
+    new_password: str = Field(min_length=8, max_length=64)
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(max_length=64)
+
+
+@app.get("/model/metrics")
+def model_metrics(user: models.User = Depends(get_current_user)):
+    path = Path(__file__).parent / "model_metrics.json"
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Model metrics have not been generated yet. Run: python evaluate_model.py",
+        )
+    return json.loads(path.read_text())
+
+
+@app.post("/auth/change-password")
+def change_password(
+    req: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    if not verify_password(req.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if req.new_password == req.current_password:
+        raise HTTPException(status_code=400, detail="New password must be different from the current one")
+
+    user.password_hash = hash_password(req.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
+
+
+@app.delete("/scans")
+def clear_history(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    scans = db.query(models.Scan).filter(models.Scan.user_id == user.id).all()
+    for scan in scans:
+        db.delete(scan)          # its reasons are deleted automatically
+    db.commit()
+    return {"message": f"Deleted {len(scans)} scans"}
+
+
+@app.post("/auth/delete-account")
+def delete_account(
+    req: DeleteAccountRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    if not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+
+    for scan in db.query(models.Scan).filter(models.Scan.user_id == user.id).all():
+        db.delete(scan)
+    db.flush()
+    db.query(models.PasswordReset).filter(models.PasswordReset.user_id == user.id).delete()
+    db.delete(user)
+    db.commit()
+    return {"message": "Account deleted"}
+# ---------- Threat feed and domain lookup ----------
+class CheckUrlRequest(BaseModel):
+    url: str = Field(min_length=1, max_length=2000)
+
+
+class DomainRequest(BaseModel):
+    domain: str = Field(min_length=1, max_length=300)
+
+
+@app.get("/threat/stats")
+def threat_stats(user: models.User = Depends(get_current_user)):
+    return feed_stats()
+
+
+@app.post("/threat/check")
+def threat_check(req: CheckUrlRequest, user: models.User = Depends(get_current_user)):
+    check_rate(f"lookup:{user.id}", 40, 60)
+    url = req.url.strip()
+    if "://" not in url:
+        url = "http://" + url
+    host = get_hostname(url)
+    return {
+        "url": url,
+        "host": host,
+        "exact": lookup_exact(url),
+        "domain": lookup_host(host) if host else None,
+    }
+
+
+@app.post("/domain/lookup")
+def domain_lookup(req: DomainRequest, user: models.User = Depends(get_current_user)):
+    check_rate(f"lookup:{user.id}", 40, 60)
+    raw = req.domain.strip()
+    if "://" not in raw:
+        raw = "http://" + raw
+    host = get_hostname(raw)
+    info = get_domain_age(host)
+    if info is None:
+        raise HTTPException(status_code=400, detail="Enter a valid website name, like example.com")
+    info["host"] = host
+    info["level"] = age_level(info["age_days"])
+    return info

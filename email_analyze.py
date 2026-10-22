@@ -214,7 +214,7 @@ def analyze_email(raw):
     links = []
     for u in urls:
         try:
-            r = analyze(u)
+            r = analyze(u, check_age=False)
         except Exception:
             continue
         links.append({"url": r["url"][:300], "verdict": r["verdict"], "score": r["score"]})

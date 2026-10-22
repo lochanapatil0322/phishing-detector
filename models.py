@@ -61,3 +61,22 @@ class PasswordReset(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     used: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_naive_now)
+
+class ThreatEntry(Base):
+    __tablename__ = "threat_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url_hash: Mapped[str] = mapped_column(String(64), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    host: Mapped[str] = mapped_column(String(255), index=True)
+    source: Mapped[str] = mapped_column(String(30), index=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=_naive_now)
+
+
+class DomainCache(Base):
+    __tablename__ = "domain_cache"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    domain: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    created_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, default=_naive_now)

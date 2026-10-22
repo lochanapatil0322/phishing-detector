@@ -1,0 +1,79 @@
+{
+  "model": "Random Forest (200 trees)",
+  "generated_at": "2026-10-22T11:26:15.252035+00:00",
+  "n_train": 8000,
+  "n_test": 2000,
+  "n_features": 15,
+  "accuracy": 0.8845,
+  "precision": 0.9026178010471204,
+  "recall": 0.862,
+  "f1": 0.881841432225064,
+  "confusion": {
+    "tn": 907,
+    "fp": 93,
+    "fn": 138,
+    "tp": 862
+  },
+  "importance": [
+    {
+      "feature": "host_length",
+      "value": 0.2622
+    },
+    {
+      "feature": "entropy",
+      "value": 0.2378
+    },
+    {
+      "feature": "longest_label",
+      "value": 0.1617
+    },
+    {
+      "feature": "free_hosting",
+      "value": 0.0774
+    },
+    {
+      "feature": "num_hyphens",
+      "value": 0.0554
+    },
+    {
+      "feature": "num_digits",
+      "value": 0.0543
+    },
+    {
+      "feature": "num_subdomains",
+      "value": 0.0414
+    },
+    {
+      "feature": "digit_ratio",
+      "value": 0.0409
+    },
+    {
+      "feature": "num_dots",
+      "value": 0.0374
+    },
+    {
+      "feature": "is_shortener",
+      "value": 0.017
+    },
+    {
+      "feature": "risky_tld",
+      "value": 0.0098
+    },
+    {
+      "feature": "fake_brand",
+      "value": 0.004
+    },
+    {
+      "feature": "has_punycode",
+      "value": 0.0006
+    },
+    {
+      "feature": "is_ip",
+      "value": 0.0003
+    },
+    {
+      "feature": "has_at",
+      "value": 0.0
+    }
+  ]
+}

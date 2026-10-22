@@ -4,16 +4,37 @@ import { useAuth } from "../AuthContext";
 import { api } from "../api";
 
 const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: "📊" },
-  { to: "/scan", label: "Scan", icon: "🔍" },
-  { to: "/history", label: "History", icon: "🕘" },
+  {
+    section: "Main",
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: "📊", title: "Dashboard" },
+      { to: "/scan", label: "Scan", icon: "🔍", title: "Scan a link or email" },
+      { to: "/history", label: "History", icon: "🕘", title: "Scan history" },
+    ],
+  },
+  {
+    section: "Intelligence",
+    items: [
+      { to: "/threat-feed", label: "Threat Feed", icon: "🌐", title: "Threat feed" },
+      { to: "/domain-lookup", label: "Domain Lookup", icon: "🔎", title: "Domain lookup" },
+    ],
+  },
+  {
+    section: "System",
+    items: [
+      { to: "/model", label: "Model Performance", icon: "🧠", title: "Model performance" },
+      { to: "/how-it-works", label: "How It Works", icon: "📘", title: "How it works" },
+    ],
+  },
+  {
+    section: "Account",
+    items: [{ to: "/settings", label: "Settings", icon: "⚙️", title: "Settings" }],
+  },
 ];
 
-const TITLES = {
-  "/dashboard": "Dashboard",
-  "/scan": "Scan a link or email",
-  "/history": "Scan history",
-};
+const TITLES = Object.fromEntries(
+  NAV.flatMap((g) => g.items).map((i) => [i.to, i.title])
+);
 
 export default function AppShell() {
   const { user, logout } = useAuth();
@@ -39,11 +60,16 @@ export default function AppShell() {
         <div className="side-brand">🛡️ PhishGuard</div>
 
         <nav className="side-nav">
-          {NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} className="side-link" onClick={() => setOpen(false)}>
-              <span>{item.icon}</span>
-              {item.label}
-            </NavLink>
+          {NAV.map((group) => (
+            <div key={group.section} className="side-group">
+              <div className="side-section">{group.section}</div>
+              {group.items.map((item) => (
+                <NavLink key={item.to} to={item.to} className="side-link" onClick={() => setOpen(false)}>
+                  <span>{item.icon}</span>
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 

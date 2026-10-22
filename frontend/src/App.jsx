@@ -9,6 +9,11 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Scan from "./pages/Scan";
 import History from "./pages/History";
+import ModelPerformance from "./pages/ModelPerformance";
+import HowItWorks from "./pages/HowItWorks";
+import Settings from "./pages/Settings";
+import ThreatFeed from "./pages/ThreatFeed";
+import DomainLookup from "./pages/DomainLookup";
 
 function RequireAuth() {
   const { user, loading } = useAuth();
@@ -31,6 +36,11 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/scan" element={<Scan />} />
         <Route path="/history" element={<History />} />
+        <Route path="/threat-feed" element={<ThreatFeed />} />
+        <Route path="/domain-lookup" element={<DomainLookup />} />
+        <Route path="/model" element={<ModelPerformance />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
