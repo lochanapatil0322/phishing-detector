@@ -387,3 +387,28 @@ input[type="file"] { width: auto; border: none; padding: 0; background: none; co
   .stat-grid.three { grid-template-columns: 1fr; }
   .kv { grid-template-columns: 100px 1fr; }
 }
+/* ---------- Trend chart ---------- */
+.trend { display: flex; align-items: flex-end; gap: 12px; height: 210px; padding-top: 6px; }
+.trend-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+.trend-total { font-size: 0.8rem; font-weight: 800; height: 16px; }
+.trend-bar {
+  width: 100%; max-width: 52px; display: flex; flex-direction: column-reverse;
+  border-radius: 8px 8px 4px 4px; overflow: hidden;
+}
+.trend-bar.empty { background: var(--border); }
+.seg { min-height: 3px; }
+.seg-green { background: var(--green); }
+.seg-amber { background: var(--amber); }
+.seg-red   { background: var(--red); }
+.trend-day { font-size: 0.78rem; color: var(--muted); }
+.legend.inline { display: flex; gap: 20px; margin-top: 14px; line-height: 1.4; }
+
+/* ---------- Top red flags ---------- */
+.flag-row { display: grid; grid-template-columns: 230px 1fr 40px; align-items: center; gap: 12px; margin: 10px 0; }
+.flag-name { font-size: 0.92rem; }
+.flag-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #fbbf24, #f87171); }
+
+@media (max-width: 640px) {
+  .flag-row { grid-template-columns: 1fr 40px; }
+  .flag-row .imp-track { grid-column: 1 / -1; order: 3; }
+}

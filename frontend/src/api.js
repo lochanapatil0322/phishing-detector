@@ -55,6 +55,8 @@ export const api = {
   threatStats: () => request("/threat/stats"),
   threatCheck: (url) => request("/threat/check", { method: "POST", body: { url } }),
   domainLookup: (domain) => request("/domain/lookup", { method: "POST", body: { domain } }),
+  trend: (tz) => request(`/stats/trend?days=7&tz=${tz}`),
+  topReasons: () => request("/stats/top-reasons"),
   scans: () => request("/scans"),
   stats: () => request("/stats"),
 };

@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+from collections import Counter
+from datetime import datetime, timedelta, timezone, time as dt_time
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
@@ -362,3 +364,97 @@ def domain_lookup(req: DomainRequest, user: models.User = Depends(get_current_us
     info["host"] = host
     info["level"] = age_level(info["age_days"])
     return info
+# ---------- Dashboard charts ----------
+# Each reason sentence is grouped under a short label (first match wins)
+FLAG_LABELS = [
+    ("exact link is listed", "Listed in phishing database"),
+    ("website has", "Website hosts listed phishing pages"),
+    ("registered", "Newly registered domain"),
+    ("not encrypted", "No encryption (http)"),
+    ("link shortener", "Link shortener"),
+    ("free website platform", "Free hosting platform"),
+    ("domain ending", "Risky domain ending"),
+    ("famous brand", "Fake brand name"),
+    ("raw ip", "Raw IP address"),
+    ("'@'", "'@' redirect trick"),
+    ("look-alike", "Look-alike characters"),
+    ("many hyphens", "Many hyphens"),
+    ("chain of subdomains", "Long subdomain chain"),
+    ("unusually long", "Very long website name"),
+    ("many digits", "Many digits in name"),
+    ("looks random", "Random-looking name"),
+    ("overall pattern", "Matches known phishing patterns"),
+    ("spf check", "SPF check failed"),
+    ("dkim check", "DKIM check failed"),
+    ("dmarc check", "DMARC check failed"),
+    ("replies go to", "Reply-To mismatch"),
+    ("sender name mentions", "Sender name impersonation"),
+    ("urgent or threatening", "Urgent or threatening wording"),
+    ("generic greeting", "Generic greeting"),
+    ("risky attachment", "Risky attachment"),
+    ("claims to go to", "Misleading link text"),
+    ("look like phishing links", "Phishing links inside emails"),
+    ("look suspicious", "Suspicious links inside emails"),
+]
+
+
+def _flag_label(text):
+    t = text.lower()
+    for key, label in FLAG_LABELS:
+        if key in t:
+            return label
+    return text[:60]
+
+
+@app.get("/stats/trend")
+def stats_trend(
+    days: int = 7,
+    tz: int = 0,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Scans per day, split by verdict. `tz` = the browser's offset from UTC in minutes."""
+    days = max(1, min(days, 30))
+    tz = max(-840, min(tz, 840))
+    offset = timedelta(minutes=tz)
+
+    now_local = datetime.now(timezone.utc).replace(tzinfo=None) + offset
+    first_day = now_local.date() - timedelta(days=days - 1)
+    start_utc = datetime.combine(first_day, dt_time.min) - offset
+
+    rows = (
+        db.query(models.Scan.created_at, models.Scan.verdict)
+        .filter(models.Scan.user_id == user.id, models.Scan.created_at >= start_utc)
+        .limit(20000)
+        .all()
+    )
+
+    buckets = {
+        first_day + timedelta(days=i): {"Safe": 0, "Suspicious": 0, "Phishing": 0}
+        for i in range(days)
+    }
+    for created_at, verdict in rows:
+        local_day = (created_at.replace(tzinfo=None) + offset).date()
+        if local_day in buckets and verdict in buckets[local_day]:
+            buckets[local_day][verdict] += 1
+
+    return [{"date": d.isoformat(), **counts} for d, counts in buckets.items()]
+
+
+@app.get("/stats/top-reasons")
+def top_reasons(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """The most common red flags across this user's Suspicious and Phishing scans."""
+    rows = (
+        db.query(models.ScanReason.reason_text)
+        .join(models.Scan, models.ScanReason.scan_id == models.Scan.id)
+        .filter(models.Scan.user_id == user.id, models.Scan.verdict != "Safe")
+        .limit(5000)
+        .all()
+    )
+    counts = Counter(
+        _flag_label(r[0]) for r in rows if not r[0].lower().startswith("note:")
+    )
+    return [{"label": label, "count": n} for label, n in counts.most_common(6)]

@@ -40,16 +40,78 @@ function Donut({ stats }) {
   );
 }
 
+function TrendChart({ data }) {
+  const totals = data.map((d) => d.Safe + d.Suspicious + d.Phishing);
+  const max = Math.max(1, ...totals);
+
+  if (totals.every((t) => t === 0)) {
+    return <p className="muted">No scans in the last 7 days.</p>;
+  }
+
+  return (
+    <>
+      <div className="trend">
+        {data.map((d, i) => {
+          const total = totals[i];
+          const height = total ? Math.max(10, (total / max) * 150) : 4;
+          const day = new Date(d.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" });
+          return (
+            <div key={d.date} className="trend-col">
+              <span className="trend-total">{total || ""}</span>
+              <div className={`trend-bar ${total ? "" : "empty"}`} style={{ height }}>
+                {d.Safe > 0 && <div className="seg seg-green" style={{ flex: d.Safe }} />}
+                {d.Suspicious > 0 && <div className="seg seg-amber" style={{ flex: d.Suspicious }} />}
+                {d.Phishing > 0 && <div className="seg seg-red" style={{ flex: d.Phishing }} />}
+              </div>
+              <span className="trend-day">{day}</span>
+            </div>
+          );
+        })}
+      </div>
+      <ul className="legend inline">
+        <li><i className="dot dot-green" /> Safe</li>
+        <li><i className="dot dot-amber" /> Suspicious</li>
+        <li><i className="dot dot-red" /> Phishing</li>
+      </ul>
+    </>
+  );
+}
+
+function TopFlags({ flags }) {
+  if (flags.length === 0) {
+    return <p className="muted">No flagged scans yet. Scan a suspicious link to see its red flags here.</p>;
+  }
+  const max = flags[0].count;
+  return (
+    <>
+      {flags.map((f) => (
+        <div key={f.label} className="flag-row">
+          <span className="flag-name">{f.label}</span>
+          <div className="imp-track">
+            <div className="flag-fill" style={{ width: `${(f.count / max) * 100}%` }} />
+          </div>
+          <span className="imp-val">{f.count}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
+  const [trend, setTrend] = useState([]);
+  const [flags, setFlags] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.stats(), api.scans()])
-      .then(([s, list]) => {
+    const tz = -new Date().getTimezoneOffset();   // minutes ahead of UTC (India = 330)
+    Promise.all([api.stats(), api.scans(), api.trend(tz), api.topReasons()])
+      .then(([s, list, t, f]) => {
         setStats(s);
         setRecent(list.slice(0, 5));
+        setTrend(t);
+        setFlags(f);
       })
       .catch((err) => setError(err.message));
   }, []);
@@ -77,9 +139,20 @@ export default function Dashboard() {
         ) : (
           <>
             <Donut stats={stats} />
-            <p className="muted">{rate}% of the links you scanned were flagged as phishing.</p>
+            <p className="muted">{rate}% of your scans were flagged as phishing.</p>
           </>
         )}
+      </div>
+
+      <div className="card">
+        <h1>Last 7 days</h1>
+        <TrendChart data={trend} />
+      </div>
+
+      <div className="card">
+        <h1>Most common red flags</h1>
+        <p className="muted">What appears most often in your Suspicious and Phishing scans.</p>
+        <TopFlags flags={flags} />
       </div>
 
       <div className="card">
