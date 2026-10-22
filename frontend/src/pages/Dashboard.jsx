@@ -72,7 +72,7 @@ export default function Dashboard() {
         <h1>Your results</h1>
         {stats.total === 0 ? (
           <p className="muted">
-            No scans yet. <Link to="/">Scan your first link</Link>.
+            No scans yet. <Link to="/scan">Scan your first link</Link>.
           </p>
         ) : (
           <>

@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from analyze import analyze
+from mailer import send_email
+from otp import create_reset_code, reset_password_with_code
 from email_analyze import analyze_email
 from database import engine, Base, get_db
 from auth import (hash_password, verify_password, DUMMY_HASH,
@@ -34,6 +36,14 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(max_length=64)
 
+class ForgotRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(pattern=r"^\d{6}$")
+    new_password: str = Field(min_length=8, max_length=64)
 
 class UrlRequest(BaseModel):
     url: str
@@ -96,6 +106,36 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 
     return {"token": create_access_token(user.id), "user": user_to_dict(user)}
 
+@app.post("/auth/forgot-password")
+def forgot_password(
+    req: ForgotRequest,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    email = req.email.lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    if user:
+        code = create_reset_code(db, user)
+        if code:
+            body = (
+                f"Your PhishGuard password reset code is: {code}\n\n"
+                "It expires in 10 minutes and works only once.\n"
+                "If you did not ask for this, ignore this email. "
+                "Your password has not been changed.\n"
+            )
+            background.add_task(send_email, user.email, "Your PhishGuard reset code", body)
+
+    # Same answer whether or not the account exists
+    return {"message": "If an account exists for that email, a 6-digit code has been sent."}
+
+
+@app.post("/auth/reset-password")
+def reset_password(req: ResetRequest, db: Session = Depends(get_db)):
+    ok = reset_password_with_code(db, req.email.lower(), req.code, req.new_password)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    return {"message": "Password updated. You can log in now."}
 
 # ---------- Protected routes (login required) ----------
 @app.get("/auth/me")

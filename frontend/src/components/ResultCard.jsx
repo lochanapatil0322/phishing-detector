@@ -4,22 +4,36 @@ const COLORS = {
   Phishing: "red",
 };
 
+const RADIUS = 52;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
 export default function ResultCard({ result }) {
   const color = COLORS[result.verdict] || "amber";
+  const offset = CIRCUMFERENCE * (1 - result.score / 100);
 
   return (
     <div className={`result result-${color}`}>
-      <div className="result-top">
-        <h2>{result.verdict}</h2>
-        <div className="score">{result.score}<span>/100</span></div>
-      </div>
+      <div className="result-head">
+        <svg className="gauge" viewBox="0 0 120 120" role="img"
+             aria-label={`Risk score ${result.score} out of 100`}>
+          <circle className="gauge-bg" cx="60" cy="60" r={RADIUS} />
+          <circle
+            className={`gauge-fill stroke-${color}`}
+            cx="60" cy="60" r={RADIUS}
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={offset}
+            transform="rotate(-90 60 60)"
+          />
+          <text x="60" y="64" className="gauge-num">{result.score}</text>
+          <text x="60" y="82" className="gauge-sub">RISK SCORE</text>
+        </svg>
 
-      <div className="bar">
-        <div className={`bar-fill fill-${color}`} style={{ width: `${result.score}%` }} />
+        <div className="result-info">
+          <h2>{result.verdict}</h2>
+          {/* plain text on purpose: never make a scanned link clickable */}
+          <p className="scanned-url">{result.url || result.subject}</p>
+        </div>
       </div>
-
-      {/* Shown as plain text on purpose: never make a scanned link clickable */}
-      <p className="scanned-url">{result.url}</p>
 
       <h3>Why?</h3>
       <ul>

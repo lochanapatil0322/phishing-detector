@@ -45,6 +45,9 @@ export const api = {
   me: () => request("/auth/me"),
   analyzeUrl: (url) => request("/analyze/url", { method: "POST", body: { url } }),
   analyzeEmail: (raw) => request("/analyze/email", { method: "POST", body: { raw } }),
+  health: () => request("/"),
+  forgotPassword: (email) => request("/auth/forgot-password", { method: "POST", body: { email } }),
+  resetPassword: (body) => request("/auth/reset-password", { method: "POST", body }),
   scans: () => request("/scans"),
   stats: () => request("/stats"),
 };
